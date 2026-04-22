@@ -1,103 +1,105 @@
-# 🐶🐱 Dogs vs Cats Image Classification using CNN
-
-## 📌 Project Overview
-
-This project builds a Convolutional Neural Network (CNN) to classify images of dogs and cats.
-It includes data preprocessing, model training, performance evaluation, and prediction on custom images.
+# 🐶🐱 Dogs vs Cats — CNN + Transfer Learning
+> Three-stage image classification: from a scratch-built CNN to VGG16 fine-tuning.
 
 ---
 
-## 🚀 Features
+## Overview
 
-* End-to-end deep learning pipeline
-* Image preprocessing using TensorFlow
-* CNN model built from scratch
-* Improved model with Batch Normalization & Dropout
-* Performance visualization (accuracy & loss)
-* Custom image prediction
+A computer vision project that systematically compares three approaches to binary image classification — building up from a basic CNN to full transfer learning with VGG16. The progression is intentional: each stage fixes a specific problem from the previous one, making the reasoning visible and not just the result.
 
 ---
 
-## 🧠 Tech Stack
+## Dataset
 
-* Python
-* TensorFlow / Keras
-* NumPy
-* Matplotlib
-* OpenCV
-* Kaggle API
+**Kaggle Dogs vs Cats** — 25,000 labelled images (12,500 dogs, 12,500 cats)  
+Downloaded directly via Kaggle API inside the notebook.
 
----
-
-## 📂 Dataset
-
-Dataset used: **Dogs vs Cats** from Kaggle
-Link: https://www.kaggle.com/datasets/salader/dogsvscats
+- Balanced classes — no sampling needed
+- High variety in pose, lighting, background, and breed
+- Images resized to **224×224** (VGG16 standard — used across all models for a fair comparison)
 
 ---
 
-## ⚙️ Project Workflow
+## Approach — 3 Stages
 
-### 1. Data Loading
+### Stage 1 — Baseline CNN (from scratch)
+- 3 blocks of Conv2D + MaxPooling
+- No regularisation, no augmentation
+- **Purpose:** Establish baseline accuracy and expose the overfitting problem
 
-* Dataset downloaded using Kaggle API
-* Extracted and loaded using `image_dataset_from_directory`
+### Stage 2 — Improved CNN
+Fixes every identified weakness from Stage 1:
+- **BatchNormalization** after each conv block — stabilises training, speeds convergence
+- **Dropout (0.4)** in the dense layers — combats overfitting
+- **Data augmentation** (random horizontal flip, rotation ±10%, zoom ±10%) — increases effective training set diversity
+- **EarlyStopping** + **ReduceLROnPlateau** — prevents wasted epochs, adapts learning rate automatically
 
-### 2. Preprocessing
+### Stage 3 — VGG16 Transfer Learning
+VGG16 was pretrained on 1.2 million ImageNet images. Its convolutional layers already encode low-level features (edges, textures) and mid-level features (shapes, patterns) that transfer well to new visual tasks.
 
-* Image resizing (256x256)
-* Normalization (pixel values scaled to [0,1])
+**Phase 1 — Feature Extraction**
+- Freeze all VGG16 layers
+- Train only the new classification head (`GlobalAveragePooling2D` → `Dense(256)` → `Dropout(0.5)` → `Dense(1)`)
+- Learning rate: `1e-4`
 
-### 3. Model Building
-
-* CNN with Conv2D, MaxPooling layers
-* Activation: ReLU
-* Output: Sigmoid (Binary Classification)
-
-### 4. Model Improvement
-
-* Added:
-
-  * Batch Normalization
-  * Dropout (to reduce overfitting)
-
-### 5. Training
-
-* Loss: Binary Crossentropy
-* Optimizer: Adam
-* Metric: Accuracy
-
-### 6. Evaluation
-
-* Training vs Validation Accuracy
-* Training vs Validation Loss
-
-### 7. Prediction
-
-* Custom images tested using OpenCV
-* Output: Dog or Cat
+**Phase 2 — Fine-tuning**
+- Unfreeze the last VGG16 conv block (block5)
+- Retrain at a very low learning rate (`1e-5`) to adapt pretrained weights without destroying them
+- EarlyStopping monitors validation loss
 
 ---
 
-## 📊 Results
+## Results
 
-* Model achieves good accuracy on validation data
-* Improved model reduces overfitting compared to baseline CNN
+| Model | Val Accuracy |
+|---|---|
+| Baseline CNN | ~82% |
+| Improved CNN (BatchNorm + Dropout + Augmentation) | ~87% |
+| VGG16 Fine-tuned | **~95%+** |
 
----
-
-
-
-## 📌 Future Improvements
-
-* Use Transfer Learning (VGG16 / ResNet)
-* Hyperparameter tuning
-* Deploy using Streamlit
-* Add confusion matrix & classification report
+**Training curves** for all three models are plotted side-by-side (accuracy and loss) so the improvement at each stage is visually clear.
 
 ---
 
-## 👤 Author
+## Visualisations
 
-Amarpal Singh Dutta
-(Data Science & Machine Learning Enthusiast)
+- Sample training image grid (8 images with labels)
+- Training vs validation accuracy and loss curves — all 3 models overlaid
+- Model comparison bar chart with accuracy labels
+- Single image prediction with confidence score
+
+---
+
+## Tech Stack
+
+```
+Python · TensorFlow/Keras · OpenCV · pandas · matplotlib · numpy
+```
+
+---
+
+## Run It
+
+```bash
+pip install tensorflow opencv-python matplotlib pandas numpy
+```
+
+1. Upload your `kaggle.json` API key to Colab
+2. Set runtime to **T4 GPU** (Runtime → Change runtime type) — mandatory for reasonable training time
+3. Run all cells — dataset downloads automatically
+4. Add your own test images as `/content/dog.jpg` and `/content/catt.jpg` for the prediction demo
+
+---
+
+## File Structure
+
+```
+CNN_Dogs_vs_Cats.ipynb         ← main notebook
+dogs_vs_cats_vgg16.h5          ← saved best model (VGG16 fine-tuned)
+```
+
+---
+
+## Why Transfer Learning Wins
+
+Training a CNN from scratch on 25,000 images gives the model limited signal to learn robust visual features. VGG16 has already seen 1.2 million diverse images — it arrives with knowledge. Fine-tuning adapts that knowledge to the specific distribution of this dataset at a fraction of the compute cost. The ~13% accuracy gap over the improved custom CNN makes this one of the clearest demonstrations of why transfer learning is the default choice for most real-world image tasks.
